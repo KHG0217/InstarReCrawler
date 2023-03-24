@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sns-config>
+	<jdbc-connection>
+		<url>jdbc:oracle:thin:@121.254.177.74:1521:ORCL</url>
+		<driver-class>oracle.jdbc.driver.OracleDriver</driver-class>
+		<user>trendup20_devel</user>
+		<password>tapaman</password>
+		<min-pool-size>1</min-pool-size>
+		<max-pool-size>1</max-pool-size>
+	</jdbc-connection>
+	<jdbc-connection-second>
+		<url>jdbc:oracle:thin:@121.254.177.185:1521:ORCL</url>
+		<driver-class>oracle.jdbc.driver.OracleDriver</driver-class>
+		<user>BUZZDB16</user>
+		<password>tapaman</password>
+		<min-pool-size>1</min-pool-size>
+		<max-pool-size>1</max-pool-size>
+	</jdbc-connection-second>
+	<jdbc-connection-third>
+		<url>jdbc:oracle:thin:@121.254.177.187:1521:ora11</url>
+		<driver-class>oracle.jdbc.driver.OracleDriver</driver-class>
+		<user>trendsrch20_devel</user>
+		<password>tapaman</password>
+		<min-pool-size>1</min-pool-size>
+		<max-pool-size>1</max-pool-size>
+        </jdbc-connection-third>
+        <snsInfo-condition><![CDATA[  AND ((LAST_UPDATED_DATE > TO_CHAR(SYSDATE - 30,'YYYYMMDDHH24miss')) OR hit_count_total = 0) AND IS_VALID_LANG = 'Y' ORDER BY DBMS_UTILITY.GET_HASH_VALUE(SITE_NAME, 2,3256918) ]]></snsInfo-condition>
+	<collector-thread>1</collector-thread>
+	<crawler-thread>1</crawler-thread>
+	<store-thread>1</store-thread>
+	<preserve-time>30</preserve-time>
+	<soTimeout>60000</soTimeout>
+	<download-bulk>Y</download-bulk>
+	<full-scan>N</full-scan>
+	<batch-run>Y</batch-run>
+	<index-run>Y</index-run>
+	<mirror-ip></mirror-ip>
+	<thrift-ip>localhost</thrift-ip>
+	<thrift-port>13000</thrift-port>
+	<flag>true</flag>
+	<mirror-directory>/var/www/html/Mirror/Twitter</mirror-directory>
+	<stop-keyword>아이폰,트위터,love,이벤트,you,about,above,across,after,against,all,almost,alone,along,already,also,although,always,among,and,another,any,anybody,anyone,anything,anywhere,are,area,areas,around,ask,asked,asking,asks,away,back,backed,backing,backs,became,because,become,becomes,been,before,began,behind,being,beings,best,better,between,big,both,but,came,can,cannot,case,cases,certain,certainly,clear,clearly,come,could,did,differ,different,differently,does,done,down,downed,downing,downs,during,each,early,either,end,ended,ending,ends,enough,even,evenly,ever,every,everybody,everyone,everything,everywhere,face,faces,fact,facts,far,felt,few,find,finds,first,for,four,from,full,fully,furhered,further,furthering,furthers,gave,general,generally,get,gets,give,given,gives,going,good,goods,got,great,greater,greatest,group,grouped,grouping,groups,had,has,have,having,her,here,herself,high,higher,highest,him,himself,his,how,however,important,interest,interested,interesting,interests,into,its,itself,just,keep,keeps,kind,knew,know,known,knows,large,largely,last,lastest,later,leastless,let,lets,like,likely,long,longer,longest,made,make,making,man,many,may,member,members,men,might,more,most,mostly,mrs,much,must,myself,necessary,need,needed,needing,needs,never,new,newer,newest,next,nobody,non,noone,not,nothing,now,nowhere,number,numbered,numbering,numbers,off,often,old,older,oldest,once,one,only,open,opened,opening,opens,order,orderd,ordering,orders,other,others,our,out,over,part,parted,parting,parts,per,perhaps,place,places,point,pointed,pointing,points,possible,present,presented,presenting,presents,problem,problems,put,puts,quite,rather,really,right,room,rooms,said,same,saw,say,says,second,seconds,see,seem,seemed,seeming,seems,sees,several,shall,she,should,show,showed,showing,shows,side,sides,since,small,smaller,smallest,some,somebody,someone,something,somewhere,state,states,still,such,sure,take,taken,than,that,the,their,them,then,there,therefore,these,they,thing,things,think,thinks,this,those,though,thought,thoughts,three,through,thus,today,together,too,took,toward,turn,turned,turning,turns,two,under,until,up,upon,us,use,used,uses,very,want,wanted,wanting,wants,was,way,ways,well,wells,went,were,what,when,where,whether,which,while,whole,whose,whoss,why,will,with,within,without,work,worked,working,works,would,year,years,yet,young,younger,youngest,your,yours,가운데,그당시,그대신,그동안,그들대로,그런고,그런날,그런데서,그런줄,그럴수록,그무렵,그전날,내년초,너나마,너희대로,너희들,누구누구,누군가,다섯째,다음달,다음주,당분간,대다수,두나라,뒷받침,마찬가지,별안간,수십개,스스로,아홉째,어느편,어디론지,어떤때,여러가지,여섯째,예년때,우리들,움직임,위해서,이달초,이듬달,이런저런,이런줄,이번분,일곱째,저기대,저런날,저런줄,적극적,전부문,전체적,제나름,중점적,지난해,평상시,푸르름,하나둘,한가운데,한가지,한마디</stop-keyword>
+
+	<php-gateway>
+		<gateway-url>http://121.254.177.70/Crawler</gateway-url>
+		<gateway-url>http://121.254.177.73/Crawler</gateway-url>
+	</php-gateway>
+</sns-config>
+
+
+
+<!--
+		<gateway-url>http://121.254.177.70/Crawler</gateway-url>
+
+		<gateway-url>http://p8.hostingprod.com/@twitterstats.com/Crawler</gateway-url>
+		<gateway-url>http://twitterstats.com.p8.hostingprod.com/Crawler</gateway-url>
+		<gateway-url>http://p8.hostingprod.com/@tapacross.com/Crawler</gateway-url>
+		<gateway-url>http://tapacross.com.p8.hostingprod.com/Crawler</gateway-url>
+
+		<gateway-url>http://192.168.10.10/Crawler</gateway-url>
+		<gateway-url>http://192.168.10.10/Crawler</gateway-url>
+		<gateway-url>http://192.168.10.10/Crawler</gateway-url>
+
+
+	<php-gateway>http://twitterstats.com.p8.hostingprod.com/Crawler</php-gateway>
+	<php-gateway>http://192.168.10.6/Crawler</php-gateway>
+	<php-gateway>http://twitterstats.com.p8.hostingprod.com/Crawler</php-gateway>
+
+		<url>jdbc:oracle:thin:@121.254.177.74:1521:ORCL</url>
+
+			<url>jdbc:oracle:thin:@121.254.177.74:1521:ORCL</url>
+
+http://p8.hostingprod.com/@twitterstats.com/
+
+
+
+
+-->

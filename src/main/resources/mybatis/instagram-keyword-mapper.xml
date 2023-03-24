@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.tapacross.sns.crawler.instagram.keyword.mapper.InstagramKeywordMapper">
+	<select id="selectProxyist" parameterType="proxy" resultType="proxy">
+		SELECT *
+		FROM TB_PROXY_INFO
+		WHERE 1=1
+	</select>
+	
+	<select id="selectSiteBySiteOldId" parameterType="string" resultType="TBCrawlSite">
+		SELECT *
+		FROM TB_CRAWL_SITE
+		WHERE 1=1
+		AND SITE_TYPE = 'I'
+		AND SITE_ID_OLD = #{value}
+		AND ROWNUM &lt; 2
+		ORDER BY LAST_UPDATED_DATE DESC
+	</select>
+	<select id="selectEnableAccount" parameterType="account" resultType="account">
+		SELECT *
+		FROM ${tableName}
+		WHERE 1=1
+		AND SITE_TYPE = #{siteType}
+		AND ACCOUNT = #{account}
+		AND STATUS = 'T'
+		AND LAST_USE_DATE &lt; SYSDATE - 1 
+	</select>
+	<update id="updateAccountLastUseDate" parameterType="account">
+		UPDATE ${tableName}
+		SET LAST_USE_DATE  = #{lastUseDate},
+		USE_HOST = #{useHost}
+		WHERE SITE_TYPE= #{siteType}
+		AND ACCOUNT = #{account}
+	</update>
+	<insert id="insertAccountHistory" parameterType="accountHistory">
+		INSERT INTO tb_user_account_history (
+			site_type,
+			account,
+			create_date,
+			host,
+			crawl_type,
+			result) 
+		VALUES (
+			#{siteType},
+			#{account},
+			#{createDate},
+			#{host},
+			#{crawlType},
+			#{result}
+		)
+	</insert>
+	<insert id="insertProxyHistory" parameterType="proxyHistory">
+		INSERT INTO tb_proxy_history (
+			ip,
+			port,
+			create_date,
+			status)
+		VALUES (
+			#{ip},
+			#{port},
+			#{createDate},
+			#{status}
+		)
+	</insert>
+</mapper>

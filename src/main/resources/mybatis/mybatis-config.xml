@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "HTTP://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="cacheEnabled" value="false" />
+		<setting name="useGeneratedKeys" value="true" />
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+		<setting name="defaultExecutorType" value="REUSE" />
+	</settings>
+	<typeAliases>
+		<typeAlias type="com.tapacross.sns.thrift.SNSInfo" alias="SnsInfo" />
+		<typeAlias type="com.tapacross.sns.entity.TBProxy" alias="proxy" />
+		<typeAlias type="com.tapacross.sns.entity.TBProxyHistory" alias="proxyHistory" />
+		<typeAlias type="com.tapacross.sns.entity.crawl.Account" alias="account" />
+		<typeAlias type="com.tapacross.sns.entity.crawl.AccountHistory" alias="accountHistory" />
+		<typeAlias type="com.tapacross.sns.entity.TBCrawlSite" alias="TBCrawlSite" />
+	</typeAliases>
+	<mappers>
+		<mapper resource="mybatis/instagram-keyword-mapper.xml" />
+	</mappers>
+</configuration>

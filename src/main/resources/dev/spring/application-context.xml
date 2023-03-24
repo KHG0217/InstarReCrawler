@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+  http://www.springframework.org/schema/beans/spring-beans-4.0.xsd   
+  http://www.springframework.org/schema/context   
+  http://www.springframework.org/schema/context/spring-context-4.0.xsd
+  http://www.springframework.org/schema/rabbit 
+  http://www.springframework.org/schema/rabbit/spring-rabbit-1.2.xsd
+  http://www.springframework.org/schema/util
+  http://www.springframework.org/schema/util/spring-util-4.0.xsd
+  http://www.springframework.org/schema/beans 
+  http://www.springframework.org/schema/beans/spring-beans.xsd
+  http://www.springframework.org/schema/jdbc 
+  http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd
+  http://www.springframework.org/schema/tx 
+  http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+  http://www.springframework.org/schema/data/mongo 
+  http://www.springframework.org/schema/data/mongo/spring-mongo-1.3.xsd
+  http://www.springframework.org/schema/mvc
+  http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+	<!-- config -->
+	<context:component-scan base-package="com.tapacross.sns.crawler.instagram.keyword" />
+	<!-- annotation이 추가된 인스턴스가 생성되게 하려면 annotation-config 빈을 등록해야 한다. -->
+	<context:annotation-config />
+	<context:property-placeholder location="classpath:application.properties" />
+	<util:properties id="applicationProperties" location="classpath:application.properties" />
+	<bean class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close" id="dataSource">
+		<property name="driverClassName" value="${trendsrch20.datasource.driverClassName}" />
+		<property name="url" value="${trendsrch20.datasource.url}" />
+		<property name="username" value="${trendsrch20.datasource.username}" />
+		<property name="password" value="${trendsrch20.datasource.password}" />
+		<property name="validationQuery" value="select 1 from dual"/>
+        <property name="testWhileIdle" value="true"/>
+        <property name="testOnBorrow" value="true"/>
+        <property name="testOnReturn" value="true"/>
+        <property name="timeBetweenEvictionRunsMillis" value="5000"/>
+        <property name="maxActive" value="2"/>
+        <property name="minIdle" value="0"/>
+        <property name="maxWait" value="10000"/>
+        <property name="initialSize" value="2"/>
+        <property name="removeAbandoned" value="true"/>
+	</bean>
+
+	<!--
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="configLocation" value="classpath:mybatis/mybatis-config.xml" />
+	</bean>
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.tapacross.sns.crawler.instagram.keyword.mapper" />
+	</bean>
+	<bean id="hibernateSessionFactory"
+		class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="annotatedClasses">
+			<list>
+				<value>com.tapacross.sns.entity.TBFilterKeyword</value>
+				<value>com.tapacross.sns.entity.TBCrawlSite2</value>
+				<value>com.tapacross.sns.entity.filter.TBSpamArticle</value>
+				<value>com.tapacross.sns.entity.crawl.TBInstaKeywordCrawlCount</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+				<prop key="hibernate.show_sql">${hibernate.showsql}</prop>
+				<prop key="hibernate.format_sql">false</prop>
+				<prop key="hibernate.hbm2ddl.auto">validate</prop>
+			</props>
+		</property>
+	</bean>
+	<bean id="hibernateTemplate" class="org.springframework.orm.hibernate3.HibernateTemplate">
+		<property name="sessionFactory" ref="hibernateSessionFactory" />
+	</bean>
+
+	-->
+	<!-- myBatis -->
+
+	<!-- transaction -->
+	<!-- beans -->
+	<bean id="applicationProperty"
+		class="com.tapacross.sns.crawler.instagram.keyword.ApplicationProperty" />
+
+	<!-- redis config -->
+	<bean id="jedisConnFactory"
+		class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"
+		p:use-pool="true" p:host-name="${redis.conn.url}" p:port="${redis.conn.port}"
+		p:password="${redis.conn.password}" p:timeout="${redis.conn.timeout}"/>
+	<!-- redis template definition -->
+	<bean id="redisStringSerializer"
+		class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate"
+		p:connection-factory-ref="jedisConnFactory" >
+		<property name="defaultSerializer" ref="redisStringSerializer"/>
+	</bean>
+	<bean id="redisDao" class="com.tapacross.sns.dao.RedisDAO">
+		<property name="redisTemplate" ref="redisTemplate"/>
+	</bean>
+	<bean id="redisService" class="com.tapacross.sns.service.RedisService">
+		<property name="redisDao" ref="redisDao"/>
+	</bean>
+
+	<!--
+	<bean id="snsDao" class="com.tapacross.sns.dao.SNSDAO">
+		<property name="hibernateTemplate" ref="hibernateTemplate" />
+	</bean>
+	-->
+	<!-- 
+	<bean id="snsService" class="com.tapacross.sns.service.TwitterSNSService">
+		<property name="snsDao" ref="snsDao" />
+	</bean>		
+	 -->
+</beans>  
