@@ -15,6 +15,7 @@ class FocusedInstagramKeywordCrawler {
 
     private static final String INSTAGRAM_KEYWORD_CRAWLER = "InstagramKeywordCrawler"
     Logger logger = LoggerFactory.getLogger(getClass())
+    private pageId ="";
 
     private void name(String hashtag, TBProxy proxy){
 
@@ -23,8 +24,8 @@ class FocusedInstagramKeywordCrawler {
         def exitFlag = false // 반복문 실행할 변수
 
         // 특정 기간부터 페이지 읽기
-        def paageId ="QVFBY3hTa3lhZHhIY2hhdzFXRWpnRV9DcnFnNWNqWXNMcUo2Uktjb3ROcnd6WUljU05IZzZoaXAzbEF1V21JOFdnTkw4bWsxS3o4MFl5UFF5Nzg1OFJlRA=="
-        def existPageDate ="20220501000000"
+        pageId ="QVFBY3hTa3lhZHhIY2hhdzFXRWpnRV9DcnFnNWNqWXNMcUo2Uktjb3ROcnd6WUljU05IZzZoaXAzbEF1V21JOFdnTkw4bWsxS3o4MFl5UFF5Nzg1OFJlRA=="
+        def existPageDate ="20220501000000" // 끝날시간 설정
 
         while (!exitFlag){
             if(proxy == null){
@@ -36,7 +37,7 @@ class FocusedInstagramKeywordCrawler {
             def res = null
 
             try{
-                res = parseExplorerHashtag(hashtag, cookies, proxy.ip, proxy.port, paageId )
+                res = parseExplorerHashtag(hashtag, cookies, proxy.ip, proxy.port, pageId )
 
             }catch (Exception e){
                 logger.info(INSTAGRAM_KEYWORD_CRAWLER,e.message)
@@ -71,7 +72,7 @@ class FocusedInstagramKeywordCrawler {
                 logger.info(INSTAGRAM_KEYWORD_CRAWLER, "page search end")
                 exitFlag = true
             }else {
-                paageId = endCursor
+                pageId = endCursor
             }
 
             for(int i=0; i < articelList.length(); i++){

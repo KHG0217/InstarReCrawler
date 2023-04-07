@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?> 
 <!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
-<mapper namespace="com.tapacross.sns.crawler.instagram.keyword.mapper.InstagramKeywordMapper">
+<mapper namespace="com.tapacross.sns.crawler.instagram.keyword.mapper.InstagramReKeywordMapper">
 	<select id="selectProxyist" parameterType="proxy" resultType="proxy">
 		SELECT *
 		FROM TB_PROXY_INFO
@@ -32,34 +32,4 @@
 		WHERE SITE_TYPE= #{siteType}
 		AND ACCOUNT = #{account}
 	</update>
-	<insert id="insertAccountHistory" parameterType="accountHistory">
-		INSERT INTO tb_user_account_history (
-			site_type,
-			account,
-			create_date,
-			host,
-			crawl_type,
-			result) 
-		VALUES (
-			#{siteType},
-			#{account},
-			#{createDate},
-			#{host},
-			#{crawlType},
-			#{result}
-		)
-	</insert>
-	<insert id="insertProxyHistory" parameterType="proxyHistory">
-		INSERT INTO tb_proxy_history (
-			ip,
-			port,
-			create_date,
-			status)
-		VALUES (
-			#{ip},
-			#{port},
-			#{createDate},
-			#{status}
-		)
-	</insert>
 </mapper>

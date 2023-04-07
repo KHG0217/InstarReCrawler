@@ -12,10 +12,10 @@ public class insertKeywordListRedisDB {
             "classpath:spring/application-context.xml");
     private static RedisService redisService = applicationContext.getBean(RedisService.class);
     public static void main(String[] args) {
-//        insertRedisDB();
-//        deleteRedisDB();
-        selectRedisDB();
-        popRedisDB();
+        deleteRedisDB();
+        insertRedisDB();
+//        selectRedisDB();
+//        popRedisDB();
 
 
 
@@ -27,12 +27,12 @@ public class insertKeywordListRedisDB {
 
         try {
             BufferedReader reader = new BufferedReader(
-                    new FileReader("../instagram-keyword-recrawler/src/main/resources/data/keywordList_1.txt"), // Read file
+                    new FileReader("../instagram-keyword-recrawler/src/main/resources/data/keywordList_3.txt"), // Read file
                     16 * 1024
             );
             String str;
             while((str = reader.readLine()) != null) {
-                redisService.pushRedisQueue("keywordList",str);
+                redisService.pushRedisQueue("keywordListTest",str);
                 System.out.println(str);
             }
         }catch (Exception e) {
@@ -42,7 +42,8 @@ public class insertKeywordListRedisDB {
     }
 
     private static void selectRedisDB(){
-        System.out.println(redisService.redisQueueSize("keywordList"));
+        System.out.println(redisService.redisQueueSize("keywordListTest"));
+        System.out.println("redisService.redisQueueSize(keywordListTest) : " + redisService.redisQueueSize("keywordListTest"));
 
     }
 
@@ -60,13 +61,19 @@ public class insertKeywordListRedisDB {
 //        }catch (Exception e) {
 //            e.printStackTrace();
 //        }
-        redisService.removeRedisValue("keywordList");
+        redisService.removeRedisValue("keywordListTest");
     }
 
     private static void popRedisDB(){
-        for(int i = 0 ; i < redisService.redisQueueSize("keywordList"); i++){
+        int count = 0;
+        Long listSize = redisService.redisQueueSize("keywordList");
+
+        System.out.println("ListSize : " + listSize);
+        for(int i = 0 ; i < listSize; i++){
+            count ++;
             System.out.println(redisService.popRedisQueue("keywordList"));
         }
+        System.out.println("count : " + count);
 
 
     }

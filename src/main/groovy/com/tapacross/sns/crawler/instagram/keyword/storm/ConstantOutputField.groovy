@@ -11,4 +11,7 @@ class ConstantOutputField {
 	public static final String URL_FIELD = "url"
 	public static final String JSON_RESULT_FIELD = "json_result"
 	public static final String ACCOUNT_FIELD = "account"
+	public static final String PARSE_DATA_LIST_FIELD = "parse_data_list"
+	public static final String PAGE_ID = "page_id"
+	public static final String QUEUE_FILED = "java_queue"
 }
