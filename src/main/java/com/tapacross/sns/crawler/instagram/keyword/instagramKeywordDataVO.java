@@ -5,7 +5,7 @@ public class instagramKeywordDataVO {
     String pageId;
     String proxyJson;
 
-    boolean contiune;
+    boolean contiune; // 인스타그램 다음 select 목록 유무, 있으면 true/ 없으면 false
 
     public boolean isContiune() {
         return contiune;

@@ -7,7 +7,7 @@ import backtype.storm.topology.base.BaseRichBolt
 import backtype.storm.tuple.Tuple
 import backtype.storm.tuple.Values
 import com.tapacross.sns.alarm.SiteType
-import com.tapacross.sns.crawler.instagram.keyword.instagramKeywordDataVO
+import com.tapacross.sns.crawler.instagram.constants.InstagramPriority
 import com.tapacross.sns.crawler.instagram.keyword.service.IInstagramKeywordReCrawlerService
 import com.tapacross.sns.crawler.instagram.keyword.service.InstagramKeywordReCrawlerService
 import com.tapacross.sns.crawler.instagram.keyword.storm.ConstantOutputField
@@ -31,6 +31,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.support.GenericXmlApplicationContext
 import org.springframework.dao.DataAccessException
 
+/**
+ * @author hgkim
+ * ParseBolt에서 받은 데이터를 필터링 처리하여 DB에 저장한다.
+ */
 class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
     private static final String INSTAGRAM_KEYWORD_RE_CRAWLER = "InstagramKeywordReCrawler"
     private final String INSTAGRAM_CRAWL_URL_KEY_PREFIX = "crawlurl:instagram:"
@@ -68,13 +72,12 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
             def parseContent = it as SNSContent
             logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER+" :"  + parseContent.createDate + ", " + parseContent.content)
 
-            logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " parsedata : $parseContent")
-
+            // Redis에 존재하는 URL이면 리턴한다. (중복 데이터)
             if (existRedis(parseContent.url)) {
                 return
             }
 
-            // instagrame selectSitebyOldId service 생성
+            // parseContent의 via값에 해당하는 수집원을 Select
             TBCrawlSite crawlSite = instagramKeywordService.selectSiteBySiteOldId(parseContent.getVia())
 
             // DB에 존재하지 않는 수집원일 경우 PASS
@@ -83,6 +86,7 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
                 return
             }
 
+            // DB 등록시 필요한 값 입력
             parseContent.setSiteName(crawlSite.getSiteName())
             parseContent.setWriterId(crawlSite.getSiteName());
             parseContent.setScreenName(crawlSite.getSiteName());
@@ -110,7 +114,7 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
             info.setSiteCategory(null);
             info.setFollower(crawlSite.getFollower())
 
-            info.setPriority(0)
+            info.setPriority(InstagramPriority.calculatePriority(info.getFollower()))
             List<SNSContent> snsContentList = new ArrayList()
             snsContentList.add(parseContent)
             info.setSnsContent(snsContentList)
@@ -118,7 +122,7 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
             // 유저당 하나의 게시물 만으로 외국계정인지 판별이 불가하여 아래의 is valid lang 로직은 사용중지하고 강제로 Y 설정
             info.setIsValidLang("Y")
 
-            filteredContents.add(info)
+            filteredContents.add(info) // 필터링이 끝난 데이터
         }
 
         for(int i=0; i<filteredContents.size(); i++) {
@@ -148,7 +152,15 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
         return false
     }
 
-
+/**
+ *
+ * @param snsContent
+ * @return boolean values
+ *
+ * 인스타그램 데이터의 본문을 필터링하여
+ * 스팸키워드에 해당하는 글이 본문에 있다면 SpamArticle에 등록하고, true 반환
+ * 스팸키워드에 해당하는 글이 본문에 없다면 false
+ */
     private boolean filteringKeyword(SNSContent snsContent) {
         String content = snsContent.content
         String url = snsContent.url
@@ -163,6 +175,7 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
         return false
     }
 
+    // spamearticle을 등록한다.
     def void insertSpamArticle(SNSContent content, int spamCode,
                                String keyword = null) {
         def articleId = KeyUtil.makeArticleIdFromSNSContent(content)
@@ -181,6 +194,7 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
         instagramKeywordService.insertSpamArticleIfAbsent(spamArticle)
     }
 
+    // crawlurl:instagram:url값 을 레디스 DB에 등록하여 중복수집을 방지한다.
     private void addRedisValue(String url) {
         def redisCrawlUrlKey = INSTAGRAM_CRAWL_URL_KEY_PREFIX + CRCUtil.getCRC32(url)
         try {
@@ -192,6 +206,7 @@ class InstagramkeywordRecrawlerExtractBolt extends BaseRichBolt {
         }
     }
 
+    // 인스타그램 데이터를 controller에서 등록할 수 있도록 redis에 넣는다.
     private void setSNSInfo(SNSInfo snsInfo) {
         def json = SNSInfoHelper.snsInfoToJson(snsInfo)
         redisService.pushFixedSkipQueue(REDIS_INSTAGRAM_KEYWORD_CRAWL_SNSINFO_QUEUE_PREFIX + ":" + priority, json, 1000)

@@ -1,6 +1,5 @@
 package com.tapacross.sns.crawler.instagram.keyword.storm.spout
 
-import backtype.storm.Constants
 import backtype.storm.spout.SpoutOutputCollector
 import backtype.storm.task.TopologyContext
 import backtype.storm.topology.OutputFieldsDeclarer
@@ -10,7 +9,6 @@ import backtype.storm.tuple.Values
 import com.tapacross.sns.crawler.instagram.keyword.storm.ConstantOutputField
 import com.tapacross.sns.crawler.instagram.keyword.instagramKeywordDataVO
 import com.tapacross.sns.entity.KeyValueItem
-import com.tapacross.sns.queue.QueueManager
 import com.tapacross.sns.service.IRedisService
 import com.tapacross.sns.service.RedisService
 import com.tapacross.sns.util.ThreadUtil
@@ -23,7 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue
 /**
  * @author hgkim
  * Redis DB에 들어있는 keywordList와 ProxyIP를 읽어 InstagramkeywordRecrawlerParseBolt에 전달하는 스파우트
- *
+ * 재수집 keywrod의 pageId(기간) 에 따른, 파싱 유무를 위해 JAVA QUEUE를 사용한다.
  *
  */
 class InstagramkeywordRecrawlerSpout extends BaseRichSpout {
@@ -47,14 +45,11 @@ class InstagramkeywordRecrawlerSpout extends BaseRichSpout {
 	public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
 
 		this.logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " open() Start!")
-
 		this.collector = collector
 		this.AccountMap = new HashMap()
 		this.proxySite = conf.get("proxy.site")
-
 		def applicationContext = new GenericXmlApplicationContext("classpath:spring/application-context.xml")
 		this.redisService = applicationContext.getBean(RedisService.class)
-
 		logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " open() End !")
 
 	}
@@ -63,17 +58,21 @@ class InstagramkeywordRecrawlerSpout extends BaseRichSpout {
 		def keyword
 		def pageid
 		def proxyJson
-		def keywordQue= keywordReuseQueue.peek()
+		def keywordQue= keywordReuseQueue.peek() // LinkedBlockingQueue 선두에 담겨있는 데이터를 읽는다.
 
+		// 큐에 담겨있는 데이터 유무 확인
 		if(keywordQue != null){
 
-			if(!keywordQue.isContiune()){
+			// 같은 키워드로 특정 기간까지 더 파싱할 데이터가 있는지 유무 확인
+
+			if(!keywordQue.isContiune()){ // 더이상 파싱할 데이터 없는 경우
 				logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " keyword exist ")
 
-				keywordReuseQueue.remove(keywordQue)
+				keywordReuseQueue.remove(keywordQue) // 해당 큐 삭제
 				return;
 			}
 
+				// 해당 키워드로 더 파싱할 데이터가 있는 경우
 				keyword = keywordQue.getKeyword()
 				proxyJson = keywordQue.getProxyJson()
 
@@ -96,13 +95,12 @@ class InstagramkeywordRecrawlerSpout extends BaseRichSpout {
 				logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " keyword emit Spout -> Parse Bolt Start : $keyword, pageId : $pageid ")
 				emitItem(keyword,proxyJson,pageid, keywordReuseQueue)
 
-				keywordReuseQueue.remove(keywordQue)
+				keywordReuseQueue.remove(keywordQue) // 해당 데이터 큐를 비워준다 (Parse Bolt 에서 데이터 큐를 다시 채워주기 때문)
 
 				logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " keyword emit Spout -> Parse Bolt Success! : $keyword, pageId : $pageid ")
 
-
+		// 큐에 담겨있는 데이터가 없는경우 (신규 키워드로 파싱)
 		}else{
-			keywordList = redisService.redisQueueSize("keywordListTest")
 			try{
 				keyword = redisService.popRedisQueue("keywordListTest")
 
@@ -126,7 +124,7 @@ class InstagramkeywordRecrawlerSpout extends BaseRichSpout {
 				logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " keyword emit Spout -> Parse Bolt Start : $keyword")
 				emitItem(keyword, proxyJson, pageid, keywordReuseQueue)
 
-				keywordReuseQueue.remove(keywordQue)
+				keywordReuseQueue.remove(keywordQue) // 해당 데이터 큐를 비워준다 (Parse Bolt 에서 데이터 큐를 다시 채워주기 때문)
 
 				logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " keyword emit Spout -> Parse Bolt Success! : $keyword")
 			}catch (NullPointerException e1){

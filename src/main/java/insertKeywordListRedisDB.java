@@ -7,6 +7,16 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author hgkim
+ * 레디스DB에 재수집할 키워드를 등록,삭제하고 등록된사이즈 수를 확인한다.
+ *
+ * 재수집할 키워드
+ *  resources -> data
+ *      keywordList_1.txt [ 예상 수집데이터가 적은 키워드 (다양한 키워드로 수집하기 위해 우선 실행)
+ *      keywotdList_2.txt [ 예상 수집데이터가 많은 키워드 ]
+ *      keywotdList_3.txt [ TEST 키워드 ]
+ */
 public class insertKeywordListRedisDB {
     private static GenericXmlApplicationContext applicationContext = new GenericXmlApplicationContext(
             "classpath:spring/application-context.xml");
@@ -15,10 +25,6 @@ public class insertKeywordListRedisDB {
         deleteRedisDB();
         insertRedisDB();
 //        selectRedisDB();
-//        popRedisDB();
-
-
-
 
     }
 
@@ -27,7 +33,7 @@ public class insertKeywordListRedisDB {
 
         try {
             BufferedReader reader = new BufferedReader(
-                    new FileReader("../instagram-keyword-recrawler/src/main/resources/data/keywordList_3.txt"), // Read file
+                    new FileReader("../instagram-keyword-recrawler/src/main/resources/data/keywordList_1.txt"), // Read file
                     16 * 1024
             );
             String str;
@@ -38,7 +44,6 @@ public class insertKeywordListRedisDB {
         }catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     private static void selectRedisDB(){
@@ -48,34 +53,8 @@ public class insertKeywordListRedisDB {
     }
 
     private static void deleteRedisDB(){
-//        try {
-//            BufferedReader reader = new BufferedReader(
-//                    new FileReader("../instagram-keyword-recrawler/src/main/resources/data/keywordList_1.txt"), // Read file
-//                    16 * 1024
-//            );
-//            String str;
-//            while((str = reader.readLine()) != null) {
-//                redisService.removeRedisValue(str);
-//                System.out.println(str);
-//            }
-//        }catch (Exception e) {
-//            e.printStackTrace();
-//        }
         redisService.removeRedisValue("keywordListTest");
     }
 
-    private static void popRedisDB(){
-        int count = 0;
-        Long listSize = redisService.redisQueueSize("keywordList");
-
-        System.out.println("ListSize : " + listSize);
-        for(int i = 0 ; i < listSize; i++){
-            count ++;
-            System.out.println(redisService.popRedisQueue("keywordList"));
-        }
-        System.out.println("count : " + count);
-
-
-    }
 
 }

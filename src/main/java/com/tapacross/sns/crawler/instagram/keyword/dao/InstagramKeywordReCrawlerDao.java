@@ -5,13 +5,11 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import org.hibernate.Session;
-import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.dao.DataAccessException;
 import org.springframework.orm.hibernate3.HibernateTemplate;
 import org.springframework.stereotype.Repository;
 
-import com.tapacross.sns.entity.TBCrawlSite2;
 import com.tapacross.sns.entity.TBFilterKeyword;
 import com.tapacross.sns.entity.filter.TBSpamArticle;
 

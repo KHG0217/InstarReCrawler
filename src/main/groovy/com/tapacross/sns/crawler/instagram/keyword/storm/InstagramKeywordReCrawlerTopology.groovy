@@ -6,9 +6,7 @@ import backtype.storm.StormSubmitter
 import backtype.storm.generated.AlreadyAliveException
 import backtype.storm.generated.InvalidTopologyException
 import backtype.storm.topology.TopologyBuilder
-import backtype.storm.utils.Utils
 import com.tapacross.sns.crawler.instagram.keyword.ApplicationProperty
-import com.tapacross.sns.crawler.instagram.keyword.instagramKeywordDataVO
 import com.tapacross.sns.crawler.instagram.keyword.storm.bolt.InstagramkeywordRecrawlerExtractBolt
 import com.tapacross.sns.crawler.instagram.keyword.storm.bolt.InstagramkeywordRecrawlerParseBolt
 import com.tapacross.sns.crawler.instagram.keyword.storm.spout.InstagramkeywordRecrawlerSpout
@@ -18,13 +16,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext
 import org.springframework.context.support.GenericXmlApplicationContext
 
-import java.util.concurrent.LinkedBlockingQueue
 
 /**
  * @author hgkim
  * 인스타그램 특정 키워드를 과거 기간동안 수집하는 스톰 토폴로지
  * 파싱시 Proxy IP를 사용하고, 로컬에서 구동한다.
- *
  *
  */
 class InstagramKeywordReCrawlerTopology {
@@ -37,12 +33,10 @@ class InstagramKeywordReCrawlerTopology {
     private int runMode = 0
     private int numWorker = 1
     private int numBolt = 1
-    private int keywordSetNum = 0
     private String proxySite = ""
     private final Logger logger = LoggerFactory.getLogger(getClass())
 
     private ApplicationProperty applicationProperty
-    private Queue<instagramKeywordDataVO> keywordReuseQueue = new LinkedBlockingQueue<instagramKeywordDataVO>()
 
     def void init(List<String> args) {
         initArgs(args)
@@ -82,9 +76,10 @@ class InstagramKeywordReCrawlerTopology {
         builder.setSpout(KEYWORD_RECEIVE_SPOUT_ID, new InstagramkeywordRecrawlerSpout(), numWorker)
         builder.setBolt(ARTICLE_PARSE_BOLT_ID, new InstagramkeywordRecrawlerParseBolt(), numBolt)
                 .localOrShuffleGrouping(KEYWORD_RECEIVE_SPOUT_ID)
-        builder.setBolt(ARTICLE_EXTRACT_BOLT_ID, new InstagramkeywordRecrawlerExtractBolt(), numWorker)
+        builder.setBolt(ARTICLE_EXTRACT_BOLT_ID, new InstagramkeywordRecrawlerExtractBolt(), 1)
                 .localOrShuffleGrouping(ARTICLE_PARSE_BOLT_ID)
         def config = new Config()
+
         config.setNumWorkers(numWorker)
         config.put("proxy.site", proxySite)
 
@@ -106,7 +101,7 @@ class InstagramKeywordReCrawlerTopology {
                 def cluster = new LocalCluster()
                 cluster.submitTopology(TOPOLOGY_NAME, config, builder.createTopology())
                 while (true) {
-                    Utils.sleep(1000 * 60 * 100)
+
                 }
                 cluster.killTopology(TOPOLOGY_NAME)
                 cluster.shutdown()

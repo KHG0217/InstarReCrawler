@@ -14,7 +14,6 @@ import com.tapacross.sns.crawler.instagram.keyword.storm.ConstantOutputField
 import com.tapacross.sns.crawler.instagram.parser.InstagramKeywordParser
 import com.tapacross.sns.entity.TBProxy
 import com.tapacross.sns.parser.JSoupFactory
-import com.tapacross.sns.thrift.SNSContent
 import com.tapacross.sns.util.ThreadUtil
 import org.json.JSONObject
 import org.jsoup.HttpStatusException
@@ -25,9 +24,13 @@ import java.util.concurrent.LinkedBlockingQueue
 
 /**
  * @author hgkim
- * 스파우트에서 받아온 키워드와 프록시IP를 받은 후 데이터를 가공하여(스팸키워드 필터적용, 영문글 미수집 등) -> insert bolt에 보낸다.
- * 날짜에 해당(2205 ~ 2211) 하는 DB에 적재한다.
+ * 스파우트에서 받아온 키워드와 프록시IP를 받은 후 인스타그램 데이터를 특정기간까지 수집하여
+ * articelContentList 담아 ExtractBolt에 보낸다.
  *
+ * 데이터를 수집하고, 더 수집해야 할 기간이 남아있다면, 해당 키워드와 Page Id를 JAVA QUEUE에 담은 후
+ * Spout에서 조건문으로 확인하여 추가수집한다.
+ *
+ * 수집도중 Exception 에 따라 재수집을 시도할지, 수집을 중단할지 판단한다. (fail/ack)
  */
 class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
 
@@ -48,8 +51,8 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
 
     @Override
     void execute(Tuple input) {
-        def iKeywordVO = new instagramKeywordDataVO()
-        def hashtag = input.getStringByField(ConstantOutputField.KEYWORD_FIELD).replaceAll(" ", "")
+        def iKeywordVO = new instagramKeywordDataVO() // 큐에 담을 VO
+        def hashtag = input.getStringByField(ConstantOutputField.KEYWORD_FIELD).replaceAll(" ", "") // 키워드 공백 제거
         def pageId = input.getStringByField(ConstantOutputField.PAGE_ID)
         def proxyJson = input.getStringByField(ConstantOutputField.PROXY_FIELD)
         def proxy = new GsonBuilder().create().fromJson(proxyJson, TBProxy.class)
@@ -95,19 +98,18 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
                 if(!hasNextPage) {
                     logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "page search end" )
                     pageId =  "QVFBY3hTa3lhZHhIY2hhdzFXRWpnRV9DcnFnNWNqWXNMcUo2Uktjb3ROcnd6WUljU05IZzZoaXAzbEF1V21JOFdnTkw4bWsxS3o4MFl5UFF5Nzg1OFJlRA=="
-                    logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "iKeywordVO.setContiune(false)" )
-                    iKeywordVO.setContiune(false)
-                    collector.ack(input)
+                    iKeywordVO.setContiune(false) // 더이상 수집하지 않도록 false 처리
+                    collector.ack(input) // 성공으로 처리
 
                 }else {
-                    pageId = endCursor
+                    pageId = endCursor // pageId에 그다음 endCursor값 (다음 날짜 페이지)를 담는다.
                     iKeywordVO.setKeyword(hashtag)
                     iKeywordVO.setPageId(pageId)
                     iKeywordVO.setProxyJson(proxyJson)
                     iKeywordVO.setContiune(true)
                     keywordReuseQueue.offer(iKeywordVO)
 
-                    sleep(CRAWL_DELAY_SECS * 1000)
+                    sleep(CRAWL_DELAY_SECS * 1000) // 1초 Sleep
 
                 }
 
@@ -127,9 +129,7 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
                     if(articleContent.createDate < existPageDate){
                         logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " old article found. exit loop." )
                         pageId =  "QVFBY3hTa3lhZHhIY2hhdzFXRWpnRV9DcnFnNWNqWXNMcUo2Uktjb3ROcnd6WUljU05IZzZoaXAzbEF1V21JOFdnTkw4bWsxS3o4MFl5UFF5Nzg1OFJlRA=="
-                        logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "iKeywordVO.setContiune(false)" )
-                        iKeywordVO.setContiune(false)
-
+                        iKeywordVO.setContiune(false) // 더이상 수집하지 않도록 false 처리
                     }
                     else{
                         articelContentList.add(articleContent)
@@ -138,7 +138,6 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
                 }
             logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " emit Parse Bolt -> Extract Bolt. Start value " )
             collector.emit(input, new Values(articelContentList, hashtag))
-            keywordReuseQueue
             collector.ack(input)
             logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + " emit Parse Bolt -> Extract Bolt. Success! value ")
 
@@ -159,14 +158,13 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
 
                 collector.fail(input)
 
-            } else if (e.statusCode == 400) { //
+            } else if (e.statusCode == 400) {
 
                 def delay = EXCEPTION_DELAY_SECS
                 logger.error(INSTAGRAM_KEYWORD_RE_CRAWLER +  " 400 error sleep $delay secs")
                 ThreadUtil.sleepSec(delay)
 
-                logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "iKeywordVO.setContiune(false)" )
-                iKeywordVO.setContiune(false)
+                iKeywordVO.setContiune(false) // 더이상 수집하지 않도록 false 처리
                 collector.ack(input)
 
             } else if (e.statusCode == 404) { // page result empty, 해시태그로 검색시 "사용할 없는 페이지인 경우"
@@ -176,25 +174,22 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
                 logger.error(INSTAGRAM_KEYWORD_RE_CRAWLER + " 500 error sleep $delay secs")
                 ThreadUtil.sleepSec(delay)
 
-                logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "iKeywordVO.setContiune(false)" )
-                iKeywordVO.setContiune(false)
+                iKeywordVO.setContiune(false) // 더이상 수집하지 않도록 false 처리
                 collector.ack(input)
 
-            } else if (e.statusCode == 560 || e.statusCode == 502) {// known error
+            } else if (e.statusCode == 560 || e.statusCode == 502) {
                 def delay = EXCEPTION_DELAY_SECS
                 logger.error(INSTAGRAM_KEYWORD_RE_CRAWLER, " 560 or 502 error sleep $delay secs")
                 ThreadUtil.sleepSec(delay)
 
-                logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "iKeywordVO.setContiune(false)" )
-                iKeywordVO.setContiune(false)
+                iKeywordVO.setContiune(false) // 더이상 수집하지 않도록 false 처리
                 collector.ack(input)
 
             } else {
                 def delay = EXCEPTION_DELAY_SECS
                 logger.error(INSTAGRAM_KEYWORD_RE_CRAWLER, " unknown error : ${e.printStackTrace()}")
 
-                logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "iKeywordVO.setContiune(false)" )
-                iKeywordVO.setContiune(false)
+                iKeywordVO.setContiune(false) // 더이상 수집하지 않도록 false 처리
                 collector.ack(input)
 
             }
@@ -214,8 +209,7 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
 
             iKeywordVO.setKeyword(hashtag)
             iKeywordVO.setPageId(pageId)
-            iKeywordVO.setContiune(true)
-
+            iKeywordVO.setContiune(true) // 재수집 하도록 true 처리
             keywordReuseQueue.offer(iKeywordVO)
 
             collector.fail(input)
@@ -226,7 +220,7 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
 
             iKeywordVO.setKeyword(hashtag)
             iKeywordVO.setPageId(pageId)
-            iKeywordVO.setContiune(true)
+            iKeywordVO.setContiune(true) // 재수집 하도록 true 처리
 
             keywordReuseQueue.offer(iKeywordVO)
 
@@ -239,7 +233,7 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
 
             iKeywordVO.setKeyword(hashtag)
             iKeywordVO.setPageId(pageId)
-            iKeywordVO.setContiune(true)
+            iKeywordVO.setContiune(true) // 재수집 하도록 true 처리
 
             keywordReuseQueue.offer(iKeywordVO)
 
@@ -256,7 +250,12 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
         declarer.declare(new Fields(ConstantOutputField.PARSE_DATA_LIST_FIELD, ConstantOutputField.KEYWORD_FIELD))
     }
 
-
+/**
+ * 인스타그램 데이터 파싱시 필요한 쿠키를 Key:Value로 생성한다.
+ *
+ * @return cookies:[csrftoken:쿠키값] ex) cookies:[csrftoken:WuL1lDgtH8gQkX4fExSJH9uBE7xXIxIB]
+ * @throws Exception
+ */
     private static Map<String, String> createCookies() throws Exception {
         def currCookies = new HashMap<String, String>()
         currCookies["mid"] = "Y37bWgALAAHUpBZW1LP8VirZ6ffF"
@@ -270,6 +269,18 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
         return currCookies
     }
 
+    /**
+     *
+     * @param hashtag
+     * @param cookies
+     * @param host
+     * @param port
+     * @param paageId
+     * @return 인스타그램 Json Data ex) {"graphql":{"hashtag": ~
+     * @throws HttpStatusException
+     *
+     * 인스타그램 데이터를 키워드와 pageID(특정기간 값),cookies, ProxyIP를 파라미터로 넘겨 데이터를 파싱한다.
+     */
     private  String parseExplorerHashtag(String hashtag, Map<String, String> cookies,
                                          String host, int port, String paageId) throws HttpStatusException {
 
@@ -301,6 +312,8 @@ class InstagramkeywordRecrawlerParseBolt extends BaseRichBolt {
             logger.info("response status is not OK " + res.statusCode() + res.body() )
             throw new HttpStatusException("response status is not OK", res.statusCode(), res.body())
         }
+
+        logger.info(INSTAGRAM_KEYWORD_RE_CRAWLER + "res.body() : ${res.body()}")
         return res.body()
     }
 
